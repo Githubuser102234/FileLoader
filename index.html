@@ -8,16 +8,16 @@
     <!-- iOS PWA/Standalone Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Shared File App">
+    <meta name="apple-mobile-web-app-title" content="File Share Target">
     
     <!-- Load Tailwind CSS via CDN for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>iOS File Loader</title>
+    <title>iOS Share Target File Handler</title>
     
     <style>
         /* Custom styles for a clean, iOS-like interface */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             background-color: #f0f2f5;
         }
         .container {
@@ -30,10 +30,11 @@
         }
         .file-upload-area {
             border: 2px dashed #d1d5db;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, border-color 0.2s;
         }
         .file-upload-area:hover {
             background-color: #f9fafb;
+            border-color: #6366f1; /* Indigo-500 */
         }
         /* Custom scrollbar for content display */
         .content-display::-webkit-scrollbar {
@@ -44,54 +45,75 @@
             border-radius: 10px;
         }
     </style>
+
+    <!-- 
+        Web App Manifest embedded as a Data URI. 
+        This is what registers the application as a PWA and a Share Target.
+        It must be present for the app to appear on the share sheet.
+    -->
+    <link rel="manifest" href="data:application/json;base64,eyJpY29ucyI6IFt7InNyYyI6ICJodHRwczovL3BsYWNlaG9sZC5jby8xOTJ4MTkyLzY5NjNmMS9mZmZmZmY/dGV4dD1GTCIsInNpemVzIjogIjE5MngxOTIiLCJ0eXBlIjogImltYWdlL3BuZyJ9XSwgIm5hbWUiOiAiRmlsZSBTY291dCIsICJzaG9ydF9uYW1lIjogIkZpbGUgU2NvdXQiLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiI2YwZjJmNSIsICJ0aGVtZV9jb2xvciI6ICIjNjM2NmYxIiwgInNoYXJlX3RhcmdldCI6IHsgImFjdGlvbiI6ICIvP3NoYXJlZFN0YXRlPXRydWUiLCAibWV0aG9kIjogIkdFVCIsICJwYXJhbXMiOiB7ICJ0aXRsZSI6ICJuYW1lIiwgInRleHQiOiAidGV4dCIsICJ1cmwiOiAidXJsIn0sICJlbmN0eXBlIjogImFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZCJ9fQ==">
 </head>
 <body class="bg-gray-100 p-4">
 
     <!-- Main Application Container -->
     <div id="app" class="container max-w-lg mx-auto flex flex-col gap-4">
         
-        <!-- Header -->
-        <header class="text-center py-6 bg-white shadow-lg rounded-xl">
-            <h1 class="text-3xl font-bold text-gray-800">Shared File Viewer</h1>
-            <p class="text-sm text-gray-500 mt-1">Ready to receive files from your iOS Share Sheet.</p>
+        <!-- Header and iOS Warning -->
+        <header class="text-center py-4 bg-white shadow-lg rounded-xl">
+            <h1 class="text-3xl font-bold text-gray-800">Share Target File App</h1>
+            <p class="text-sm text-gray-500 mt-1">iOS Share Status: <span id="shareStatus" class="font-medium text-red-500">Awaiting File...</span></p>
         </header>
+
+        <!-- iOS File Share Limitation Notice -->
+        <div id="ios-limitation" class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 rounded-lg">
+            <p class="text-sm font-semibold">⚠️ iOS Share Sheet Limitation:</p>
+            <p class="text-xs mt-1">iOS PWAs only receive **Text or URLs** when shared. For actual **File Content** (PDFs, images, documents), you must use the button below to manually select the file via the system file picker.</p>
+        </div>
 
         <!-- File Input Area -->
         <div class="card p-6 rounded-xl">
-            <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Load or Share a File</h2>
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">1. Load a File</h2>
             
-            <label for="fileInput" class="block w-full text-center py-10 rounded-lg cursor-pointer file-upload-area text-gray-500 transition-all duration-300 hover:border-indigo-500 hover:text-indigo-600">
+            <label for="fileInput" class="block w-full text-center py-10 rounded-lg cursor-pointer file-upload-area text-gray-500 transition-all duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span class="text-lg font-medium" id="upload-label">Tap here to select a file</span>
-                <p class="text-xs mt-1">Supports Text, Markdown, JSON, and Images (Metadata only)</p>
+                <span class="text-lg font-medium" id="upload-label">Select File Manually (Recommended)</span>
+                <p class="text-xs mt-1">Supports all file types (Content display limited to Text/Image)</p>
                 <input type="file" id="fileInput" class="hidden" multiple accept="*/*">
             </label>
-            
-            <div id="share-info" class="mt-4 p-3 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-800 rounded hidden">
-                <p class="text-sm font-medium">✨ Share Sheet Setup:</p>
-                <p class="text-xs">To enable sharing *to* this app, add this page to your iOS Home Screen (Share Sheet -> Add to Home Screen). Then, use the share sheet from another app to "share" a file or URL to the new Home Screen icon.</p>
+        </div>
+
+        <!-- File Details & Metadata Editing -->
+        <div id="fileMetadataCard" class="card p-6 rounded-xl hidden">
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">2. File Metadata & Editor</h2>
+
+            <div class="space-y-4">
+                <!-- Editable File Name -->
+                <div>
+                    <label for="metadataName" class="block text-xs font-medium text-gray-500 mb-1">File Name (Editable)</label>
+                    <input type="text" id="metadataName" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" value="No File Loaded">
+                </div>
+
+                <!-- Custom Tags -->
+                <div>
+                    <label for="metadataTags" class="block text-xs font-medium text-gray-500 mb-1">Custom Tags (e.g., important, work)</label>
+                    <input type="text" id="metadataTags" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="tag1, tag2, tag3">
+                </div>
+            </div>
+
+            <!-- Read-Only Details -->
+            <div class="mt-4 pt-4 border-t border-gray-200 text-sm font-mono space-y-1">
+                <p>Original Size: <span id="fileSize" class="font-bold text-gray-800">N/A</span></p>
+                <p>MIME Type: <span id="fileType" class="font-bold text-gray-800">N/A</span></p>
             </div>
         </div>
 
-        <!-- File Details & Content Display -->
+        <!-- File Content Display -->
         <div id="fileDisplayCard" class="card p-6 rounded-xl hidden">
-            <h2 class="text-xl font-semibold mb-3 text-gray-700">2. File Content</h2>
-
-            <!-- File Metadata -->
-            <div class="bg-gray-50 p-4 rounded-lg mb-4 text-sm font-mono border border-gray-200">
-                <p>Name: <span id="fileName" class="font-bold text-gray-800">N/A</span></p>
-                <p>Size: <span id="fileSize" class="font-bold text-gray-800">N/A</span></p>
-                <p>Type: <span id="fileType" class="font-bold text-gray-800">N/A</span></p>
-            </div>
-
-            <!-- Content Viewer -->
-            <div class="relative">
-                <h3 class="text-lg font-medium mb-2 text-gray-600">File Preview:</h3>
-                <div id="contentDisplay" class="content-display w-full h-64 p-4 bg-white border border-gray-300 rounded-lg overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap">
-                    Select a file to view its contents here.
-                </div>
+            <h2 class="text-xl font-semibold mb-3 text-gray-700">3. File Preview</h2>
+            <div id="contentDisplay" class="content-display w-full h-64 p-4 bg-white border border-gray-300 rounded-lg overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap">
+                Select a file or share text/URL to view content.
             </div>
         </div>
 
@@ -100,19 +122,22 @@
     <script>
         // --- Global Elements ---
         const fileInput = document.getElementById('fileInput');
+        const shareStatusEl = document.getElementById('shareStatus');
+        const fileMetadataCard = document.getElementById('fileMetadataCard');
         const fileDisplayCard = document.getElementById('fileDisplayCard');
-        const fileNameEl = document.getElementById('fileName');
+        const metadataNameEl = document.getElementById('metadataName');
+        const metadataTagsEl = document.getElementById('metadataTags');
         const fileSizeEl = document.getElementById('fileSize');
         const fileTypeEl = document.getElementById('fileType');
         const contentDisplayEl = document.getElementById('contentDisplay');
         const uploadLabelEl = document.getElementById('upload-label');
         
+        let currentFile = null; // Stores the loaded File object
+
         // --- Utility Functions ---
 
         /**
          * Converts file size in bytes to a human-readable string.
-         * @param {number} bytes 
-         * @returns {string}
          */
         function formatBytes(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -123,15 +148,21 @@
         }
 
         /**
-         * Clears and resets the display elements.
+         * Resets the display elements.
          */
-        function resetDisplay() {
-            fileNameEl.textContent = 'N/A';
+        function resetDisplay(statusText = 'Awaiting File...') {
+            currentFile = null;
+            metadataNameEl.value = 'No File Loaded';
+            metadataTagsEl.value = '';
             fileSizeEl.textContent = 'N/A';
             fileTypeEl.textContent = 'N/A';
-            contentDisplayEl.innerHTML = 'Select a file to view its contents here.';
+            contentDisplayEl.innerHTML = 'Select a file or share content to view it here.';
+            fileMetadataCard.classList.add('hidden');
             fileDisplayCard.classList.add('hidden');
-            uploadLabelEl.textContent = 'Tap here to select a file';
+            uploadLabelEl.textContent = 'Select File Manually (Recommended)';
+            shareStatusEl.textContent = statusText;
+            shareStatusEl.classList.remove('text-green-500');
+            shareStatusEl.classList.add('text-red-500');
         }
 
         /**
@@ -140,22 +171,30 @@
          * @param {string} content 
          */
         function displayFile(file, content) {
+            currentFile = file;
+            fileMetadataCard.classList.remove('hidden');
             fileDisplayCard.classList.remove('hidden');
             
-            // Update Metadata
-            fileNameEl.textContent = file.name;
+            // Update Metadata Editor
+            metadataNameEl.value = file.name;
             fileSizeEl.textContent = formatBytes(file.size);
             fileTypeEl.textContent = file.type || 'Unknown';
             uploadLabelEl.textContent = `File Selected: ${file.name}`;
 
-            // Update Content
+            // Update Share Status
+            shareStatusEl.textContent = 'File Loaded';
+            shareStatusEl.classList.remove('text-red-500');
+            shareStatusEl.classList.add('text-green-500');
+
+
+            // Update Content Viewer
             const mimeType = file.type || '';
             
             if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('xml')) {
                 // Display text content
                 contentDisplayEl.textContent = content;
-                contentDisplayEl.style.color = '#1f2937'; // dark gray text
-                contentDisplayEl.style.backgroundColor = '#ffffff'; // white background
+                contentDisplayEl.style.color = '#1f2937'; 
+                contentDisplayEl.style.backgroundColor = '#ffffff'; 
             } else if (mimeType.startsWith('image/')) {
                  // Display image preview
                 const imageUrl = URL.createObjectURL(file);
@@ -164,18 +203,17 @@
             } else {
                 // Handle unsupported binary files
                 contentDisplayEl.textContent = `File type '${mimeType}' is not supported for direct text viewing. Showing only metadata.`;
-                contentDisplayEl.style.color = '#ef4444'; // red text for error
-                contentDisplayEl.style.backgroundColor = '#fef2f2'; // light red background
+                contentDisplayEl.style.color = '#ef4444'; 
+                contentDisplayEl.style.backgroundColor = '#fef2f2'; 
             }
         }
 
         /**
          * Reads the selected file using FileReader.
-         * @param {File} file 
          */
         function readFile(file) {
             const reader = new FileReader();
-
+            
             reader.onload = (e) => {
                 displayFile(file, e.target.result);
             };
@@ -187,68 +225,74 @@
 
             const mimeType = file.type || '';
 
-            if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.includes('xml')) {
-                // Read text-based files as text
+            // Read text/image content
+            if (mimeType.startsWith('text/') || mimeType.includes('json') || mimeType.startsWith('image/')) {
                 reader.readAsText(file);
-            } else if (mimeType.startsWith('image/')) {
-                // For images, we only need the URL object for the preview, 
-                // but we call readAsDataURL to trigger the onload event flow.
-                // The actual content displayed will be the URL/preview.
-                reader.readAsDataURL(file);
             } else {
-                // For other files (e.g., PDFs, zips), read as ArrayBuffer for binary, 
-                // but display only metadata/error message.
-                reader.readAsArrayBuffer(file);
-                // Call display immediately since ArrayBuffer content is not useful to print
-                displayFile(file, 'Binary file loaded.');
+                // For binary files, display metadata immediately
+                displayFile(file, 'Binary file loaded. Content preview unavailable.');
             }
         }
 
-        // --- Event Listener ---
+        // --- Event Listeners ---
 
+        // Manual File Input
         fileInput.addEventListener('change', (event) => {
             const files = event.target.files;
             if (files.length > 0) {
-                // This app is designed to process the first file in a potential list
                 readFile(files[0]);
             } else {
                 resetDisplay();
             }
         });
+        
+        // Metadata Editor Logic (just logging the change for demonstration)
+        metadataNameEl.addEventListener('input', () => {
+            console.log(`Metadata Name updated to: ${metadataNameEl.value}`);
+        });
+
+        metadataTagsEl.addEventListener('input', () => {
+            console.log(`Tags updated to: ${metadataTagsEl.value}`);
+        });
 
 
-        // --- Share Sheet Handling (Run on Load) ---
+        // --- Share Sheet Handler (Run on Load) ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Check if the app is running in standalone mode (indicating a PWA/Home Screen app)
-            if (window.matchMedia('(display-mode: standalone)').matches || 
-                document.referrer.includes('apple-mobile-web-app')) {
-                document.getElementById('share-info').classList.remove('hidden');
-            }
-
-            // Check URL for shared text/url parameters (common for Web Share Target API)
             const urlParams = new URLSearchParams(window.location.search);
             const sharedText = urlParams.get('text');
             const sharedUrl = urlParams.get('url');
+            const sharedState = urlParams.get('sharedState'); // Check for the shared state indicator
 
-            if (sharedText || sharedUrl) {
+            if (sharedText || sharedUrl || sharedState) {
+                // A share action occurred (even if it's just a placeholder state)
+                fileMetadataCard.classList.remove('hidden');
                 fileDisplayCard.classList.remove('hidden');
-                fileNameEl.textContent = 'Shared Content via URL';
+                
+                shareStatusEl.textContent = 'Shared Content Received';
+                shareStatusEl.classList.remove('text-red-500');
+                shareStatusEl.classList.add('text-green-500');
+                
+                let content = 'Shared content was received via the iOS Share Sheet.\n\n';
+                metadataNameEl.value = 'Shared Data';
                 fileSizeEl.textContent = 'N/A';
                 fileTypeEl.textContent = 'Shared Text/URL';
                 
-                let content = '';
                 if (sharedText) {
-                    content += `SHARED TEXT:\n${decodeURIComponent(sharedText)}\n\n`;
+                    content += `TEXT:\n${decodeURIComponent(sharedText)}\n\n`;
+                    metadataNameEl.value = decodeURIComponent(sharedText).substring(0, 30) + (sharedText.length > 30 ? '...' : '');
                 }
                 if (sharedUrl) {
-                    content += `SHARED URL:\n${decodeURIComponent(sharedUrl)}`;
+                    content += `URL:\n${decodeURIComponent(sharedUrl)}`;
+                    metadataTagsEl.value = 'shared-link';
                 }
-
+                
                 contentDisplayEl.textContent = content.trim();
                 contentDisplayEl.style.color = '#059669'; // green text
                 contentDisplayEl.style.backgroundColor = '#ecfdf5'; // light green background
 
-                uploadLabelEl.textContent = 'Shared content loaded!';
+            } else {
+                // Regular load
+                resetDisplay('Awaiting File...');
             }
         });
     </script>
